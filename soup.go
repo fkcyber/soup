@@ -22,18 +22,6 @@ import (
 // ErrorType defines types of errors that are possible from soup
 type ErrorType int
 
-type PayloadForGov struct {
-	txtUsername  string `json:"txtUsername"`
-	txtPassword  string `json:"txtPasasword"`
-	txtKey       string `json:"txtKey"`
-	ddlLanguages string `json:"ddlLanguages"`
-	ddlSkins     string `json:"ddlSkins"`
-	loginParam   string `json:"loginParam"`
-	Token        string `json:"Token"`
-	AuthId       string `json:"AuthId"`
-	offset       string `json:"offset"`
-}
-
 const (
 	// ErrUnableToParse will be returned when the HTML could not be parsed
 	ErrUnableToParse ErrorType = iota
@@ -86,8 +74,6 @@ type Root struct {
 
 // Init a new HTTP client for use when the client doesn't want to use their own.
 var (
-	defaultClient = &http.Client{}
-
 	debug = false
 
 	// Headers contains all HTTP headers to send
@@ -114,19 +100,22 @@ func Cookie(n string, v string) {
 	Cookies[n] = v
 }
 
-// GetWithClient returns the HTML returned by the url using a provided HTTP client
-func GetWithClient(url string, client *http.Client) (string, error) {
+// GET returns the HTML returned by the url using a provided HTTP client
+func GET(url string, headers map[string]string) (string, error) {
 	req, err := http.NewRequest("GET", url, nil)
+	if headers != nil {
+		for key, value := range headers {
+			Header(key, value)
+		}
+		setHeadersAndCookies(req)
+	}
 	if err != nil {
 		if debug {
 			panic("Couldn't create GET request to " + url)
 		}
 		return "", newError(ErrCreatingGetRequest, "error creating get request to "+url)
 	}
-
-	setHeadersAndCookies(req)
-
-	// Perform request
+	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
 		if debug {
@@ -164,7 +153,7 @@ func setHeadersAndCookies(req *http.Request) {
 	}
 }
 
-// getBodyReader serializes the body for a network request. See the test file for examples
+// getBodyReader serializes the body for a network request
 func getBodyReader(rawBody interface{}) (io.Reader, error) {
 	var bodyReader io.Reader
 
@@ -193,22 +182,27 @@ func getBodyReader(rawBody interface{}) (io.Reader, error) {
 	return bodyReader, nil
 }
 
-// PostWithClient returns the HTML returned by the url using a provided HTTP client
+// POST returns the HTML returned by the url
 // The type of the body must conform to one of the types listed in func getBodyReader()
-func PostWithClient(headers map[string]string, url string, body interface{}, client *http.Client) (string, error) {
+func POST(url string, body interface{}, headers map[string]string) (string, error) {
+
 	bodyReader, err := getBodyReader(body)
 	if err != nil {
 		return "todo:", err
 	}
 
-	req, _ := http.NewRequest("POST", url, bodyReader)
-	for key, value := range headers {
-		Header(key, value)
+	req, err := http.NewRequest("POST", url, bodyReader)
+	if err != nil {
+		panic(err)
 	}
-	setHeadersAndCookies(req)
+	if headers != nil {
+		for key, value := range headers {
+			Header(key, value)
+		}
+		setHeadersAndCookies(req)
+	}
 
 	if debug {
-		// Save a copy of this request for debugging.
 		requestDump, err := httputil.DumpRequest(req, true)
 		if err != nil {
 			fmt.Println(err)
@@ -216,7 +210,7 @@ func PostWithClient(headers map[string]string, url string, body interface{}, cli
 		fmt.Println(string(requestDump))
 	}
 
-	// Perform request
+	client := &http.Client{}
 	resp, err := client.Do(req)
 
 	if err != nil {
@@ -234,11 +228,6 @@ func PostWithClient(headers map[string]string, url string, body interface{}, cli
 		return "", newError(ErrReadingResponse, "unable to read the response body")
 	}
 	return string(bytes), nil
-}
-
-// Get returns the HTML returned by the url as a string using the default HTTP client
-func Get(url string) (string, error) {
-	return GetWithClient(url, defaultClient)
 }
 
 // HTMLParse parses the HTML returning a start pointer to the DOM
@@ -282,7 +271,7 @@ func (r Root) Find(args ...string) Root {
 // and returns an array of structs, each having
 // the respective pointers
 func (r Root) FindAll(args ...string) []Root {
-	temp := findAllofem(r.Pointer, args, false)
+	temp := findeverything(r.Pointer, args, false)
 	if len(temp) == 0 {
 		if debug {
 			panic("Element `" + args[0] + "` with attributes `" + strings.Join(args[1:], " ") + "` not found")
@@ -312,7 +301,7 @@ func (r Root) FindStrict(args ...string) Root {
 // FindAllStrict finds all occurrences of the given tag name
 // only if all the values of the provided attribute are an exact match
 func (r Root) FindAllStrict(args ...string) []Root {
-	temp := findAllofem(r.Pointer, args, true)
+	temp := findeverything(r.Pointer, args, true)
 	if len(temp) == 0 {
 		if debug {
 			panic("Element `" + args[0] + "` with attributes `" + strings.Join(args[1:], " ") + "` not found")
@@ -511,7 +500,7 @@ func findOnce(n *html.Node, args []string, uni bool, strict bool) (*html.Node, b
 }
 
 // Using depth first search to find all occurrences and return
-func findAllofem(n *html.Node, args []string, strict bool) []*html.Node {
+func findeverything(n *html.Node, args []string, strict bool) []*html.Node {
 	var nodeLinks = make([]*html.Node, 0, 10)
 	var f func(*html.Node, []string, bool)
 	f = func(n *html.Node, args []string, uni bool) {

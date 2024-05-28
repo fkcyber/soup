@@ -1,4 +1,5 @@
 # soup
+
 [![Build Status](https://travis-ci.org/anaskhan96/soup.svg?branch=master)](https://travis-ci.org/anaskhan96/soup)
 [![GoDoc](https://godoc.org/github.com/anaskhan96/soup?status.svg)](https://pkg.go.dev/github.com/anaskhan96/soup)
 [![Go Report Card](https://goreportcard.com/badge/github.com/anaskhan96/soup)](https://goreportcard.com/report/github.com/anaskhan96/soup)
@@ -8,12 +9,13 @@
 *soup* is a small web scraper package for Go, with its interface highly similar to that of BeautifulSoup.
 
 Exported variables and functions implemented till now :
+
 ```go
 var Headers map[string]string // Set headers as a map of key-value pairs, an alternative to calling Header() individually
 var Cookies map[string]string // Set cookies as a map of key-value  pairs, an alternative to calling Cookie() individually
 func Get(string) (string,error) {} // Takes the url as an argument, returns HTML string
-func GetWithClient(string, *http.Client) {} // Takes the url and a custom HTTP client as arguments, returns HTML string
-func Post(string, string, interface{}) (string, error) {} // Takes the url, bodyType, and payload as an argument, returns HTML string
+func GET(string, map[string]string) (string, error) {} // Takes the url and headers returns HTML string
+func POST(string, interface{}, map[string]string) (string, error) {} // Takes the url, payload, and headers as string, interface{} and map (url, payload, headers)
 func PostForm(string, url.Values) {} // Takes the url and body. bodyType is set to "application/x-www-form-urlencoded"
 func Header(string, string) {} // Takes key,value pair to set as headers for the HTTP request made in Get()
 func Cookie(string, string) {} // Takes key, value pair to set as cookies to be sent with the HTTP request in Get()
@@ -35,51 +37,100 @@ func HTML() {} // HTML returns the HTML code for the specific element
 ```
 
 `Root` is a struct, containing three fields :
+
 * `Pointer` containing the pointer to the current html node
 * `NodeValue` containing the current html node's value, i.e. the tag name for an ElementNode, or the text in case of a TextNode
 * `Error` containing an error in a struct if one occurrs, else `nil` is returned. 
-A detailed text explaination of the error can be accessed using the `Error()` function. A field `Type` in this struct of type `ErrorType` will denote the kind of error that took place, which will consist of either of the following
-	* `ErrUnableToParse`
-	* `ErrElementNotFound`
-	* `ErrNoNextSibling`
-	* `ErrNoPreviousSibling`
-	* `ErrNoNextElementSibling`
-	* `ErrNoPreviousElementSibling`
-	* `ErrCreatingGetRequest`
-	* `ErrInGetRequest`
-	* `ErrReadingResponse`
+  A detailed text explaination of the error can be accessed using the `Error()` function. A field `Type` in this struct of type `ErrorType` will denote the kind of error that took place, which will consist of either of the following
+  * `ErrUnableToParse`
+  * `ErrElementNotFound`
+  * `ErrNoNextSibling`
+  * `ErrNoPreviousSibling`
+  * `ErrNoNextElementSibling`
+  * `ErrNoPreviousElementSibling`
+  * `ErrCreatingGetRequest`
+  * `ErrInGetRequest`
+  * `ErrReadingResponse`
 
 ## Installation
+
 Install the package using the command
+
 ```bash
-go get github.com/anaskhan96/soup
+go get github.com/fkcyber/soup
 ```
 
-## Example
+## Examples
+
 An example code is given below to scrape the "Comics I Enjoy" part (text and its links) from [xkcd](https://xkcd.com).
 
-[More Examples](https://github.com/anaskhan96/soup/tree/master/examples)
 ```go
 package main
 
 import (
-	"fmt"
-	"github.com/anaskhan96/soup"
-	"os"
+    "fmt"
+    "os"
+
+    "github.com/fkcyber/soup"
 )
 
+// can initialize empty headers & payloads too like this:
+/*
+emptyPayload := interface{}
+noSpecifiedHeaders := map[string]string
+*/
+
 func main() {
-	resp, err := soup.Get("https://xkcd.com")
-	if err != nil {
-		os.Exit(1)
-	}
-	doc := soup.HTMLParse(resp)
-	links := doc.Find("div", "id", "comicLinks").FindAll("a")
-	for _, link := range links {
-		fmt.Println(link.Text(), "| Link :", link.Attrs()["href"])
-	}
+    emptyPayload := interface{}
+    noSpecifiedHeaders := map[string]string
+    resp, err := soup.GET("https://xkcd.com", emptyPayload, noSpecifiedHeaders)
+    if err != nil {
+        os.Exit(1)
+    }
+    doc := soup.HTMLParse(resp)
+    links := doc.Find("div", "id", "comicLinks").FindAll("a")
+    for _, link := range links {
+        fmt.Println(link.Text(), "| Link :", link.Attrs()["href"])
+    }
 }
 ```
 
-## Contributions
-This package was developed in my free time. However, contributions from everybody in the community are welcome, to make it a better web scraper. If you think there should be a particular feature or function included in the package, feel free to open up a new issue or pull request.
+```go
+package main
+
+import (
+	"bytes"
+	"encoding/json"
+	"net/http"
+
+    "github.com/fkcyber/soup"
+)
+
+// impossible to send POST without data/payload/request/info
+
+func main() {
+	webhookURL := "YOUR_DISCORD_WEBHOOK_URL"
+    headers := map[string]string{
+        "Content-Type": "application/json",
+    }
+	data := map[string]string{
+		"content": "testing soup.POST() at [fkcyber/soup](https://github.com/fkcyber/soup) with webhooks",
+	}
+	payload, err := json.Marshal(data)
+	if err != nil {
+		panic(err)
+	}
+
+	req, err := soup.POST(webhookURL, bytes.NewBuffer(payload), headers)
+	if err != nil {
+		panic(err)
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+}
+```

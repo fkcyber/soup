@@ -1,3 +1,16 @@
+## v1.2.0 fkcyber fork
+
+###  Added functions
+- `GET` added with payload/data/info/request
+- `POST` added with payload/data/info/request
+
+### Deprecated functions
+- `Get` is deprecated
+- `Post` is deprecated
+- `GetWithClient` is deprecated
+- `PostWithClient` is deprecated
+- `Cookie` is deprecated
+
 ## v1.2.0
 
 ### Added
