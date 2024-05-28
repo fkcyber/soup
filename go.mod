@@ -1,4 +1,4 @@
-module github.com/anaskhan96/soup
+module github.com/fkcyber/soup
 
 go 1.13
 

@@ -11,7 +11,6 @@ import (
 	"io"
 	"net/http"
 	"net/http/httputil"
-	"net/url"
 	netURL "net/url"
 	"regexp"
 	"strings"
@@ -22,6 +21,18 @@ import (
 
 // ErrorType defines types of errors that are possible from soup
 type ErrorType int
+
+type PayloadForGov struct {
+	txtUsername  string `json:"txtUsername"`
+	txtPassword  string `json:"txtPasasword"`
+	txtKey       string `json:"txtKey"`
+	ddlLanguages string `json:"ddlLanguages"`
+	ddlSkins     string `json:"ddlSkins"`
+	loginParam   string `json:"loginParam"`
+	Token        string `json:"Token"`
+	AuthId       string `json:"AuthId"`
+	offset       string `json:"offset"`
+}
 
 const (
 	// ErrUnableToParse will be returned when the HTML could not be parsed
@@ -184,14 +195,16 @@ func getBodyReader(rawBody interface{}) (io.Reader, error) {
 
 // PostWithClient returns the HTML returned by the url using a provided HTTP client
 // The type of the body must conform to one of the types listed in func getBodyReader()
-func PostWithClient(url string, bodyType string, body interface{}, client *http.Client) (string, error) {
+func PostWithClient(headers map[string]string, url string, body interface{}, client *http.Client) (string, error) {
 	bodyReader, err := getBodyReader(body)
 	if err != nil {
 		return "todo:", err
 	}
 
 	req, _ := http.NewRequest("POST", url, bodyReader)
-	Header("Content-Type", bodyType)
+	for key, value := range headers {
+		Header(key, value)
+	}
 	setHeadersAndCookies(req)
 
 	if debug {
@@ -221,16 +234,6 @@ func PostWithClient(url string, bodyType string, body interface{}, client *http.
 		return "", newError(ErrReadingResponse, "unable to read the response body")
 	}
 	return string(bytes), nil
-}
-
-// Post returns the HTML returned by the url as a string using the default HTTP client
-func Post(url string, bodyType string, body interface{}) (string, error) {
-	return PostWithClient(url, bodyType, body, defaultClient)
-}
-
-// PostForm is a convenience method for POST requests that
-func PostForm(url string, data url.Values) (string, error) {
-	return PostWithClient(url, "application/x-www-form-urlencoded", data, defaultClient)
 }
 
 // Get returns the HTML returned by the url as a string using the default HTTP client

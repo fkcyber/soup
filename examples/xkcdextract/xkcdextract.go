@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/anaskhan96/soup"
+	"github.com/fkcyber/soup"
 )
 
 func main() {
