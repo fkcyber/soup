@@ -9,7 +9,6 @@
 - `Post` is deprecated
 - `GetWithClient` is deprecated
 - `PostWithClient` is deprecated
-- `Cookie` is deprecated
 
 ## v1.2.0
 

@@ -9,7 +9,6 @@ Exported variables and functions implemented till now :
 ```go
 var Headers map[string]string // Set headers as a map of key-value pairs, an alternative to calling Header() individually
 var Cookies map[string]string // Set cookies as a map of key-value  pairs, an alternative to calling Cookie() individually
-func Get(string) (string,error) {} // Takes the url as an argument, returns HTML string
 func GET(string, map[string]string) (string, error) {} // Takes the url and headers returns HTML string
 func POST(string, interface{}, map[string]string) (string, error) {} // Takes the url, payload, and headers as string, interface{} and map (url, payload, headers)
 func PostForm(string, url.Values) {} // Takes the url and body. bodyType is set to "application/x-www-form-urlencoded"
