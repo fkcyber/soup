@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -129,7 +128,7 @@ func GetWithClient(url string, client *http.Client) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	bytes, err := ioutil.ReadAll(utf8Body)
+	bytes, err := io.ReadAll(utf8Body)
 	if err != nil {
 		if debug {
 			panic("Unable to read the response body")
@@ -214,7 +213,7 @@ func PostWithClient(url string, bodyType string, body interface{}, client *http.
 		return "", newError(ErrCreatingPostRequest, "couldn't perform POST request to "+url)
 	}
 	defer resp.Body.Close()
-	bytes, err := ioutil.ReadAll(resp.Body)
+	bytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		if debug {
 			panic("Unable to read the response body")
@@ -266,7 +265,7 @@ func HTMLParse(s string) Root {
 // and returns a struct with a pointer to it
 func (r Root) Find(args ...string) Root {
 	temp, ok := findOnce(r.Pointer, args, false, false)
-	if ok == false {
+	if !ok {
 		if debug {
 			panic("Element `" + args[0] + "` with attributes `" + strings.Join(args[1:], " ") + "` not found")
 		}
@@ -298,7 +297,7 @@ func (r Root) FindAll(args ...string) []Root {
 // only if all the values of the provided attribute are an exact match
 func (r Root) FindStrict(args ...string) Root {
 	temp, ok := findOnce(r.Pointer, args, false, true)
-	if ok == false {
+	if !ok {
 		if debug {
 			panic("Element `" + args[0] + "` with attributes `" + strings.Join(args[1:], " ") + "` not found")
 		}
@@ -481,7 +480,7 @@ func matchElementName(n *html.Node, name string) bool {
 
 // Using depth first search to find the first occurrence and return
 func findOnce(n *html.Node, args []string, uni bool, strict bool) (*html.Node, bool) {
-	if uni == true {
+	if uni {
 		if n.Type == html.ElementNode && matchElementName(n, args[0]) {
 			if len(args) > 1 && len(args) < 4 {
 				for i := 0; i < len(n.Attr); i++ {
@@ -501,7 +500,7 @@ func findOnce(n *html.Node, args []string, uni bool, strict bool) (*html.Node, b
 	uni = true
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
 		p, q := findOnce(c, args, true, strict)
-		if q != false {
+		if q {
 			return p, q
 		}
 	}
@@ -513,7 +512,7 @@ func findAllofem(n *html.Node, args []string, strict bool) []*html.Node {
 	var nodeLinks = make([]*html.Node, 0, 10)
 	var f func(*html.Node, []string, bool)
 	f = func(n *html.Node, args []string, uni bool) {
-		if uni == true {
+		if uni {
 			if n.Type == html.ElementNode && matchElementName(n, args[0]) {
 				if len(args) > 1 && len(args) < 4 {
 					for i := 0; i < len(n.Attr); i++ {
@@ -563,7 +562,7 @@ func getKeyValue(attributes []html.Attribute) map[string]string {
 	var keyvalues = make(map[string]string)
 	for i := 0; i < len(attributes); i++ {
 		_, exists := keyvalues[attributes[i].Key]
-		if exists == false {
+		if !exists {
 			keyvalues[attributes[i].Key] = attributes[i].Val
 		}
 	}
